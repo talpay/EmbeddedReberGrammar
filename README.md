@@ -43,6 +43,12 @@ This will generate the following files in data/250_20_20:
 - `x_250_20_20.npy`: Model inputs (1-hot encoding)
 - `y_250_20_20.npy`: Model targets (1-hot encoding)
 
+We can also generate sequences of different lengths. In this case, sequences will be 0-padded to the maximum length:
+
+```
+$ python reber.py --num 10000 --minLen 10 --maxLen 50 --embedded True 
+```
+
 Note that the number of unique sequences is limited for each sequence length, i.e., there are less available sequences for both very short and very long lengths.
 If you want to spend more computing resources searching for unique sequences, you can increase `patience` to a value higher than 1Mio (default).
 
