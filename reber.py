@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Dec 14 13:39:06 2015
@@ -11,9 +12,6 @@ import random
 import numpy as np
 import csv
 
-UNKNOWN_SYM = '#'
-
-
 class Reber(object):
     def __init__(self, seed=42, prediction=True):
 
@@ -23,7 +21,10 @@ class Reber(object):
         # decide Prediction vs Classification:
         self.prediction = prediction
 
-        self.vocabSize = 7
+        self.vocabSize = 8
+
+        self.UNK = '#'
+        self.PAD = ' ' #' '
 
         # based on: https://github.com/danvk/lstm-examples
         self.transitions = [
@@ -34,14 +35,16 @@ class Reber(object):
             [('P', 3), ('V', 5)],
             [('E', -1)]]
 
+
         self.atoi = {
-            'B': 0,
+            self.PAD: 0,
             'T': 1,
             'P': 2,
             'S': 3,
             'X': 4,
             'V': 5,
-            'E': 6
+            'E': 6,
+            'B': 7,
         }
 
         self.itoa = {v: k for k, v in self.atoi.items()}
@@ -78,7 +81,7 @@ class Reber(object):
 
         return currentInputs, currentTargets
 
-    def make_reber(self):
+    def make_reber(self, minLen, maxLen):
         idx = 0
         out = 'B'
         while idx != -1:
@@ -87,9 +90,9 @@ class Reber(object):
             out += symbol
         return out
 
-    def make_embedded_reber(self):
+    def make_embedded_reber(self, minLen, maxLen):
         c = random.choice(['T', 'P'])
-        return 'B%s%s%sE' % (c, self.make_reber(), c)
+        return 'B%s%s%sE' % (c, self.make_reber(minLen, maxLen), c)
 
     def make_sequences(self, num, minLen, maxLen, embedded=True, patience=1000000):
         """ Generates human-readable sequences in a list
@@ -126,10 +129,13 @@ class Reber(object):
                 print("Note that there are a limited amount of Reber-words for a given length.")
                 break
 
-            word = generate()
+            word = generate(minLen, maxLen)
             if len(word) >= minLen:
+                # padding:
+                word += self.PAD * (maxLen - len(word))
                 if len(word) > maxLen or word in lexicon:
                     continue
+
                 lexicon.append(word)
                 x = 0
 
@@ -145,9 +151,9 @@ class Reber(object):
 
         res = ''
         for char in s:
-            res += str(self.atoi.get(str(char), UNKNOWN_SYM))
+            res += str(self.atoi.get(str(char), self.UNK))
 
-        if UNKNOWN_SYM in res:
+        if self.UNK in res:
             raise Exception('unknown character could not be encoded within sequence: %s' % res)
         return res
 
@@ -178,8 +184,11 @@ class Reber(object):
                     # decode from int to reberSym
                     if type(symVec) is not np.array:
                         symVec = np.array(symVec)
-                    idx = np.where(symVec == 1)[0]
-                    symStr = self.itoa.get(int(idx))
+                    if np.all((symVec == 0)):
+                        symStr = self.PAD
+                    else:
+                        idx = np.where(symVec == 1)[0]
+                        symStr = self.itoa.get(int(idx))
                     seqL.append(symStr)
                 b.append(seqL)
 
@@ -220,7 +229,8 @@ class Reber(object):
             Xs = []
             for sym in seq:
                 inp = np.zeros(self.vocabSize)
-                inp[int(sym)] = 1
+                if int(sym) != self.atoi[self.PAD]:
+                    inp[int(sym)] = 1
                 Xs.append(inp)
             X.append(Xs)
 
@@ -251,7 +261,9 @@ class Reber(object):
             and return them as a list: [inputs, outputs]
         """
 
-        assert maxLen >= minLen
+        assert maxLen >= minLen, "Error: maxLen can't be smaller than minLen"
+        if minLen != maxLen:
+            print("Varying sequence lengths will be padded with 0-vector and symbol: " + r.PAD)
 
         if outputAsLabels is None:
             outputAsLabels = not self.prediction
@@ -282,9 +294,9 @@ class Reber(object):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--num", type=int, help="number of samples", default=250)
-    parser.add_argument("--minLen", type=int, help="min sequence length", default=20)
-    parser.add_argument("--maxLen", type=int, help="max sequence length", default=20)
+    parser.add_argument("--num", type=int, help="number of samples", default=100000)
+    parser.add_argument("--minLen", type=int, help="min sequence length", default=5)
+    parser.add_argument("--maxLen", type=int, help="max sequence length", default=50)
     parser.add_argument('--seed', type=int, help="random seed", default=42)
     parser.add_argument('--prediction', type=lambda x: (str(x).lower() == 'true'), help="Prediction: shift targets by 1 timestep", default=False)
     parser.add_argument('--embedded', type=lambda x: (str(x).lower() == 'true'), help="Embedded Reber Grammar or Reber Grammar", default=True)
@@ -293,9 +305,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    assert args.minLen == args.maxLen, "Padding not implemented, need fixed sequence lengths"
-
     r = Reber(seed=args.seed, prediction=args.prediction)
+
     x, y = r.get_batches(num=args.num, minLen=args.minLen, maxLen=args.maxLen, embedded=args.embedded, patience=args.patience)
     s = r.batch_to_str(x)
 
