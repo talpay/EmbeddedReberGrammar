@@ -25,6 +25,7 @@ class Reber(object):
 
         self.vocabSize = 7
 
+        # based on: https://github.com/danvk/lstm-examples
         self.transitions = [
             [('T', 1), ('P', 2)],
             [('X', 3), ('S', 1)],
