@@ -283,8 +283,8 @@ class Reber(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--num", type=int, help="number of samples", default=250)
-    parser.add_argument("--minLen", type=int, help="min sequence length", default=50)
-    parser.add_argument("--maxLen", type=int, help="max sequence length", default=50)
+    parser.add_argument("--minLen", type=int, help="min sequence length", default=20)
+    parser.add_argument("--maxLen", type=int, help="max sequence length", default=20)
     parser.add_argument('--seed', type=int, help="random seed", default=42)
     parser.add_argument('--prediction', type=lambda x: (str(x).lower() == 'true'), help="Prediction: shift targets by 1 timestep", default=False)
     parser.add_argument('--embedded', type=lambda x: (str(x).lower() == 'true'), help="Embedded Reber Grammar or Reber Grammar", default=True)
