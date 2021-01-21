@@ -1,4 +1,4 @@
-# Embedded Reber Gramar
+# Embedded Reber Grammar
 <img src="ERG.svg" width="500">
 
 ### About
